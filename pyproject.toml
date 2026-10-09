@@ -1,0 +1,9 @@
+[project]
+name = "releasedesk-starter"
+version = "0.1.0"
+description = "A local release-review dashboard and optimistic concurrency engineering exercise."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 100

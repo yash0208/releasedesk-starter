@@ -1,0 +1,37 @@
+[
+  {
+    "id": "REL-1042", "service": "Atlas API", "version": "2.8.0",
+    "environment": "Production", "risk": "Medium", "status": "pending", "revision": 1,
+    "summary": "Replace the legacy request router with a versioned routing table. Staging traffic replay is complete; a second reviewer must confirm the rollback path.",
+    "checks": [{"name": "Unit & integration tests", "result": "passed"}, {"name": "Staging traffic replay", "result": "passed"}, {"name": "Rollback rehearsal", "result": "passed"}],
+    "updated_at": "2026-10-09T10:15:00+00:00"
+  },
+  {
+    "id": "REL-1043", "service": "Queue Worker", "version": "1.14.2",
+    "environment": "Staging", "risk": "Low", "status": "pending", "revision": 1,
+    "summary": "Reduce retry pressure after transient network errors. A synthetic burst test confirms bounded backoff and unchanged queue ordering.",
+    "checks": [{"name": "Unit & integration tests", "result": "passed"}, {"name": "Burst-load simulation", "result": "passed"}, {"name": "Rollback rehearsal", "result": "passed"}],
+    "updated_at": "2026-10-09T09:40:00+00:00"
+  },
+  {
+    "id": "REL-1044", "service": "Search Index", "version": "3.2.1",
+    "environment": "Production", "risk": "High", "status": "pending", "revision": 1,
+    "summary": "Change the index refresh policy for synthetic catalog records. Memory usage needs another review before the production rollout can proceed.",
+    "checks": [{"name": "Unit & integration tests", "result": "passed"}, {"name": "Memory budget check", "result": "review"}, {"name": "Rollback rehearsal", "result": "passed"}],
+    "updated_at": "2026-10-09T08:25:00+00:00"
+  },
+  {
+    "id": "REL-1045", "service": "Edge Gateway", "version": "4.6.0",
+    "environment": "Staging", "risk": "Low", "status": "approved", "revision": 2,
+    "summary": "Normalize response headers at the edge. Contract checks and synthetic request replay match the baseline service behavior.",
+    "checks": [{"name": "Contract tests", "result": "passed"}, {"name": "Synthetic request replay", "result": "passed"}, {"name": "Rollback rehearsal", "result": "passed"}],
+    "updated_at": "2026-10-09T08:00:00+00:00"
+  },
+  {
+    "id": "REL-1046", "service": "Event Collector", "version": "0.9.8",
+    "environment": "Production", "risk": "Medium", "status": "rejected", "revision": 2,
+    "summary": "A proposed batching change exceeds the latency budget under the synthetic slow-consumer workload. The current release is held for revision.",
+    "checks": [{"name": "Unit & integration tests", "result": "passed"}, {"name": "Latency budget check", "result": "review"}, {"name": "Rollback rehearsal", "result": "passed"}],
+    "updated_at": "2026-10-09T07:35:00+00:00"
+  }
+]

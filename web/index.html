@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="ReleaseDesk local release review dashboard with synthetic data."
+    />
+    <title>ReleaseDesk — Review queue</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="ReleaseDesk home"
+        ><span class="brand-mark">R</span><span>ReleaseDesk</span></a
+      >
+      <span class="workspace">Engineering / Release operations</span>
+      <div class="header-end">
+        <span class="local-badge"><i></i> Local workspace</span
+        ><button id="refresh" class="button quiet">Refresh data</button>
+      </div>
+    </header>
+    <div class="app-layout">
+      <aside class="sidebar" id="release-queue" aria-label="Release queue">
+        <div class="sidebar-heading">
+          <span class="eyebrow">REVIEW QUEUE</span
+          ><span id="queue-count" class="count">0</span>
+        </div>
+        <label class="sr-only" for="search">Search releases</label>
+        <input
+          id="search"
+          class="search"
+          type="search"
+          placeholder="Search service or release…"
+        />
+        <label class="sr-only" for="status-filter">Filter release status</label>
+        <select id="status-filter" class="filter">
+          <option value="all">All releases</option>
+          <option value="pending">Awaiting review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <div id="queue" class="queue" aria-live="polite">
+          <p class="empty">Loading release queue…</p>
+        </div>
+        <div class="sidebar-footer">
+          <span class="eyebrow">WORKSPACE DATA</span>
+          <p>5 synthetic releases.<br />No deployment systems connected.</p>
+          <button id="reset" class="reset-link">Reset demo records</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div id="empty-selection" class="empty-selection" hidden>
+          Select a release to inspect its review record.
+        </div>
+        <div id="release-content">
+          <div class="breadcrumb">
+            Review queue <span>/</span> <span id="release-id">—</span>
+          </div>
+          <div class="release-title">
+            <div>
+              <div class="title-meta">
+                <span id="environment" class="environment">—</span
+                ><span id="status" class="status pending">Awaiting review</span>
+              </div>
+              <h1 id="service">Loading…</h1>
+              <p class="title-description">
+                Review the evidence. Record a decision. Preserve the audit
+                trail.
+              </p>
+            </div>
+            <div class="version-block">
+              <span class="eyebrow">RELEASE VERSION</span
+              ><strong id="version">—</strong
+              ><span id="revision">Revision —</span>
+            </div>
+          </div>
+          <div class="workspace-grid">
+            <section class="evidence" aria-label="Release evidence">
+              <section class="section">
+                <div class="section-heading">
+                  <h2>Change summary</h2>
+                  <span id="risk" class="risk">—</span>
+                </div>
+                <p id="summary" class="summary"></p>
+              </section>
+              <section class="section">
+                <div class="section-heading">
+                  <h2>Readiness checks</h2>
+                  <span class="subtle">Provided release evidence</span>
+                </div>
+                <div id="checks" class="checks"></div>
+              </section>
+              <section class="section" id="audit-panel">
+                <div class="section-heading">
+                  <h2>Decision history</h2>
+                  <span id="audit-count" class="subtle">0 events</span>
+                </div>
+                <div id="audit" class="audit"></div>
+              </section>
+            </section>
+            <aside class="review-column" aria-label="Review tools">
+              <section class="review-panel">
+                <div class="section-heading">
+                  <h2>Record a decision</h2>
+                  <span class="mini-label">REVIEW</span>
+                </div>
+                <p class="panel-description">
+                  Decisions are saved to the local release record and its audit
+                  history.
+                </p>
+                <div class="snapshot">
+                  <span class="snapshot-dot"></span
+                  ><span id="snapshot">Snapshot revision —</span
+                  ><button id="reload-snapshot" class="text-button">
+                    Reload
+                  </button>
+                </div>
+                <label for="reviewer">Reviewer</label
+                ><select id="reviewer">
+                  <option>Reviewer A</option>
+                  <option>Reviewer B</option>
+                  <option>Reviewer C</option></select
+                ><label for="note">Decision rationale</label
+                ><textarea id="note" rows="3" maxlength="500">
+Staging evidence and rollback checks reviewed.</textarea
+                >
+                <div class="decision-actions">
+                  <button id="reject" class="button secondary">
+                    Reject release</button
+                  ><button id="approve" class="button primary">
+                    Approve release
+                  </button>
+                </div>
+                <p id="decision-hint" class="hint">
+                  Review the release evidence before submitting.
+                </p>
+              </section>
+              <section class="lab-panel">
+                <div class="section-heading">
+                  <h2>Concurrent review lab</h2>
+                  <span class="mini-label">DIAGNOSTICS</span>
+                </div>
+                <p class="panel-description">
+                  Two reviewers submit opposite decisions against the same saved
+                  revision.
+                </p>
+                <div class="reviewer-pair">
+                  <span><b>A</b> Approve</span
+                  ><span class="pair-divider">same snapshot</span
+                  ><span><b>B</b> Reject</span>
+                </div>
+                <button id="run-race" class="button secondary full-width">
+                  Run concurrent review
+                </button>
+                <div
+                  id="race-result"
+                  class="race-result"
+                  role="status"
+                  hidden
+                ></div>
+              </section>
+              <details class="inspector" open>
+                <summary>
+                  Request inspector
+                  <span id="request-count" class="count">0</span>
+                </summary>
+                <div id="requests" class="requests">
+                  <p class="empty">
+                    Review requests and their HTTP responses will appear here.
+                  </p>
+                </div>
+              </details>
+            </aside>
+          </div>
+        </div>
+        <footer class="main-footer">
+          <span>ReleaseDesk development workspace</span
+          ><span>SQLite persistence · Synthetic fixtures</span>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
