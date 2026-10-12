@@ -45,6 +45,27 @@
     </aside>
     <main class="main">
       <div id="notice" class="notice" role="status" hidden></div>
+      <section class="overview" aria-labelledby="overview-heading">
+          <div class="overview-heading">
+            <div>
+              <span class="eyebrow">RELEASE PORTFOLIO</span>
+              <h2 id="overview-heading">At a glance</h2>
+            </div>
+            <span class="subtle">Current saved records</span>
+          </div>
+          <div id="overview-stats" class="overview-stats" aria-live="polite">
+            <p class="empty">Loading portfolio overview…</p>
+          </div>
+          <div class="overview-detail">
+            <p><strong>Environments:</strong> <span id="overview-environments">—</span></p>
+            <div>
+              <strong>Pending checks needing review</strong>
+              <ul id="overview-attention" class="overview-attention">
+                <li>Loading attention list…</li>
+              </ul>
+            </div>
+          </div>
+        </section>
       <div id="empty-selection" class="empty-selection" hidden>
         Select a release to inspect its review record.
       </div>

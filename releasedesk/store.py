@@ -89,6 +89,35 @@ class Store:
             rows = connection.execute("SELECT * FROM releases ORDER BY id").fetchall()
         return [self.serialize(row) for row in rows]
 
+    def overview(self):
+        """Summarize one read-only snapshot of the current release records."""
+        releases = self.list_releases()
+        by_status = {status: 0 for status in ("pending", "approved", "rejected")}
+        by_environment = {}
+        attention = []
+        for release in releases:
+            by_status[release["status"]] = by_status.get(release["status"], 0) + 1
+            environment = release["environment"]
+            by_environment[environment] = by_environment.get(environment, 0) + 1
+            checks = [
+                check["name"] for check in release["checks"]
+                if check["result"] == "review"
+            ]
+            if release["status"] == "pending" and checks:
+                attention.append({
+                    "id": release["id"],
+                    "service": release["service"],
+                    "environment": environment,
+                    "risk": release["risk"],
+                    "checks_needing_review": checks,
+                })
+        return {
+            "total": len(releases),
+            "by_status": by_status,
+            "by_environment": dict(sorted(by_environment.items())),
+            "attention": attention,
+        }
+
     def get_release(self, release_id):
         with self.connection() as connection:
             row = connection.execute("SELECT * FROM releases WHERE id = ?", (release_id,)).fetchone()
