@@ -142,6 +142,40 @@ class ApiTests(unittest.TestCase):
                 self.assertTrue(response.headers["Content-Type"].startswith(content_type))
                 self.assertGreater(len(response.read()), 100)
 
+    def test_overview_counts_and_pending_attention(self):
+        status, body = self.request("/api/overview")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["total"], 5)
+        self.assertEqual(body["by_status"], {"pending": 3, "approved": 1, "rejected": 1})
+        self.assertEqual(body["by_environment"], {"Production": 3, "Staging": 2})
+        self.assertEqual(body["attention"], [{
+            "id": "REL-1044", "service": "Search Index", "environment": "Production",
+            "risk": "High", "checks_needing_review": ["Memory budget check"],
+        }])
+
+    def test_overview_follows_review_and_reset(self):
+        self.request("/api/releases/REL-1042/review", self.review_payload())
+        after_review = self.request("/api/overview")[1]
+        self.assertEqual(after_review["by_status"],
+                         {"pending": 2, "approved": 2, "rejected": 1})
+        self.assertEqual(after_review["total"], 5)
+        self.assertEqual(after_review["by_environment"],
+                         {"Production": 3, "Staging": 2})
+        self.assertEqual([item["id"] for item in after_review["attention"]], ["REL-1044"])
+        self.request("/api/demo/reset", {"confirm": "reset-synthetic-data"})
+        after_reset = self.request("/api/overview")[1]
+        self.assertEqual(after_reset["by_status"],
+                         {"pending": 3, "approved": 1, "rejected": 1})
+        self.assertEqual([item["id"] for item in after_reset["attention"]], ["REL-1044"])
+
+    def test_overview_does_not_change_revisions_or_audit_history(self):
+        before = self.request("/api/releases")[1]["releases"]
+        self.request("/api/overview")
+        self.request("/api/overview")
+        after = self.request("/api/releases")[1]["releases"]
+        self.assertEqual(after, before)
+        self.assertEqual(self.request("/api/releases/REL-1042/audit")[1]["events"], [])            
+
 
 if __name__ == "__main__":
     unittest.main()

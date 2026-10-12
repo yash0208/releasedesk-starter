@@ -53,6 +53,9 @@ def make_handler(store):
             if path == "/api/releases":
                 self.respond(200, {"releases": store.list_releases()})
                 return
+            if path == "/api/overview":
+                self.respond(200, store.overview())
+                return
             match = re.fullmatch(r"/api/releases/([A-Z0-9-]+)(/audit)?", path)
             if match:
                 release_id, audit = match.groups()

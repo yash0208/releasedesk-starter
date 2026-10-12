@@ -217,8 +217,62 @@ function renderRequests() {
       ),
     );
 }
+function renderOverview(overview) {
+  const stats = [
+    ["Total", overview.total],
+    ["Awaiting review", overview.by_status.pending],
+    ["Approved", overview.by_status.approved],
+    ["Rejected", overview.by_status.rejected],
+  ];
+  $("overview-stats").replaceChildren();
+  for (const [label, count] of stats) {
+    const card = element("div", "overview-stat");
+    card.append(element("strong", "", String(count)), element("span", "", label));
+    $("overview-stats").append(card);
+  }
+  $("overview-environments").textContent =
+    Object.entries(overview.by_environment)
+      .map(([name, count]) => `${name} ${count}`)
+      .join(" · ") || "No releases";
+  $("overview-attention").replaceChildren();
+  for (const release of overview.attention) {
+    const item = element("li");
+    item.append(
+      element("strong", "", `${release.id} · ${release.service}`),
+      element(
+        "span", "",
+        `${release.environment} · ${release.risk} risk · ${release.checks_needing_review.join(", ")}`,
+      ),
+    );
+    $("overview-attention").append(item);
+  }
+  if (!overview.attention.length)
+    $("overview-attention").append(
+      element("li", "empty", "No pending checks need review."),
+    );
+}
+
+async function loadOverview() {
+  try {
+    const overview = await api("/api/overview");
+    if (!overview.ok) throw new Error("Could not load portfolio overview.");
+    renderOverview(overview.data);
+  } catch (error) {
+    $("overview-stats").replaceChildren(
+      element("p", "empty", "Portfolio overview unavailable."),
+    );
+    $("overview-environments").textContent = "—";
+    $("overview-attention").replaceChildren();
+    notice(error.message, true);
+  }
+}
+
 
 async function load() {
+  if (!state.snapshot) {
+    await loadOverview();
+    return;
+  }
   const result = await api("/api/releases");
   if (!result.ok) throw new Error("Could not load releases.");
   state.releases = result.data.releases;
