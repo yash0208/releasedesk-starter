@@ -309,6 +309,35 @@ async function runRace() {
   }
 }
 
+$("copy-summary").addEventListener("click", async () => {
+  const release = state.snapshot;
+  if (!release) return;
+
+  const summary = [
+    `Release: ${release.id} - ${release.service}`,
+    `Version: ${release.version}`,
+    `Environment: ${release.environment}`,
+    `Status: ${statusLabel[release.status]}`,
+    `Risk: ${release.risk}`,
+    "",
+    "Change summary:",
+    release.summary,
+    "",
+    "Readiness checks:",
+    ...release.checks.map(
+      (check) =>
+        `- ${check.name}: ${check.result === "passed" ? "Passed" : "Needs review"}`,
+    ),
+  ].join("\n");
+
+  try {
+    await navigator.clipboard.writeText(summary);
+    notice(`Review summary copied for ${release.id}.`);
+  } catch {
+    notice("Could not copy the review summary. Try again or copy the details manually.", true);
+  }
+});
+
 $("search").addEventListener("input", renderQueue);
 $("status-filter").addEventListener("change", renderQueue);
 $("approve").addEventListener("click", () => decide("approved"));
