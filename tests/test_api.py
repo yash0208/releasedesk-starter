@@ -174,7 +174,7 @@ class ApiTests(unittest.TestCase):
         self.request("/api/overview")
         after = self.request("/api/releases")[1]["releases"]
         self.assertEqual(after, before)
-        self.assertEqual(self.request("/api/releases/REL-1042/audit")[1]["events"], [])            
+        self.assertEqual(self.request("/api/releases/REL-1042/audit")[1]["events"], [])
 
 
 if __name__ == "__main__":

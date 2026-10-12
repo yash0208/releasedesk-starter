@@ -269,10 +269,6 @@ async function loadOverview() {
 
 
 async function load() {
-  if (!state.snapshot) {
-    await loadOverview();
-    return;
-  }
   const result = await api("/api/releases");
   if (!result.ok) throw new Error("Could not load releases.");
   state.releases = result.data.releases;
@@ -282,12 +278,16 @@ async function load() {
   renderQueue();
   $("empty-selection").hidden = Boolean(state.snapshot);
   $("release-content").hidden = !state.snapshot;
-  if (!state.snapshot) return;
+  if (!state.snapshot) {
+    await loadOverview();
+    return;
+  }
   state.selectedId = state.snapshot.id;
   renderRelease(state.snapshot);
   const audit = await api(`/api/releases/${state.selectedId}/audit`);
   if (!audit.ok) throw new Error("Could not load decision history.");
   renderAudit(audit.data.events);
+  await loadOverview();
 }
 
 async function sendReview(releaseId, body) {

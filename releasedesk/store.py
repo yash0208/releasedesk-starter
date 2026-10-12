@@ -116,7 +116,7 @@ class Store:
             "by_status": by_status,
             "by_environment": dict(sorted(by_environment.items())),
             "attention": attention,
-        }    
+        }
 
     def get_release(self, release_id):
         with self.connection() as connection:

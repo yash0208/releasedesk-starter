@@ -863,6 +863,13 @@ h2 {
   .main {
     padding: 22px 18px;
   }
+  .overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .overview-detail {
+    flex-direction: column;
+    gap: 8px;
+  }
   .review-column {
     display: flex;
   }
