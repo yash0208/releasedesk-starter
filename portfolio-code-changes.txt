@@ -1,0 +1,246 @@
+EXACT CODE EDITS FOR THE CLEAN v0.1.0 STARTER
+
+These line numbers are from commit c8783f4 before edits; later lines shift as you insert code. Use the quoted anchor text in VS Code Find (Cmd+F). Paste each block exactly, including indentation. Choose this manual path OR the patch command in flow.txt, not both. The full patch at the end of flow.txt contains the same changes.
+
+1. releasedesk/store.py — after the blank line at original line 91, before `def get_release` at line 92, insert this entire method; leave one blank line after it:
+```python
+    def overview(self):
+        """Summarize one read-only snapshot of the current release records."""
+        releases = self.list_releases()
+        by_status = {status: 0 for status in ("pending", "approved", "rejected")}
+        by_environment = {}
+        attention = []
+        for release in releases:
+            by_status[release["status"]] = by_status.get(release["status"], 0) + 1
+            environment = release["environment"]
+            by_environment[environment] = by_environment.get(environment, 0) + 1
+            checks = [
+                check["name"] for check in release["checks"]
+                if check["result"] == "review"
+            ]
+            if release["status"] == "pending" and checks:
+                attention.append({
+                    "id": release["id"],
+                    "service": release["service"],
+                    "environment": environment,
+                    "risk": release["risk"],
+                    "checks_needing_review": checks,
+                })
+        return {
+            "total": len(releases),
+            "by_status": by_status,
+            "by_environment": dict(sorted(by_environment.items())),
+            "attention": attention,
+        }
+```
+
+2. releasedesk/server.py — after the `/api/releases` block that ends at original line 55, before `match = re.fullmatch(...)` at line 56, insert:
+```python
+            if path == "/api/overview":
+                self.respond(200, store.overview())
+                return
+```
+
+3. tests/test_api.py — after `test_queue_has_five_synthetic_releases` at original line 53, before `test_release_contains_decision_snapshot_and_checks` at line 55, insert these three tests; leave one blank line before the following test:
+```python
+    def test_overview_counts_and_pending_attention(self):
+        status, body = self.request("/api/overview")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["total"], 5)
+        self.assertEqual(body["by_status"], {"pending": 3, "approved": 1, "rejected": 1})
+        self.assertEqual(body["by_environment"], {"Production": 3, "Staging": 2})
+        self.assertEqual(body["attention"], [{
+            "id": "REL-1044", "service": "Search Index", "environment": "Production",
+            "risk": "High", "checks_needing_review": ["Memory budget check"],
+        }])
+
+    def test_overview_follows_review_and_reset(self):
+        self.request("/api/releases/REL-1042/review", self.review_payload())
+        after_review = self.request("/api/overview")[1]
+        self.assertEqual(after_review["by_status"],
+                         {"pending": 2, "approved": 2, "rejected": 1})
+        self.assertEqual(after_review["total"], 5)
+        self.assertEqual(after_review["by_environment"],
+                         {"Production": 3, "Staging": 2})
+        self.assertEqual([item["id"] for item in after_review["attention"]], ["REL-1044"])
+        self.request("/api/demo/reset", {"confirm": "reset-synthetic-data"})
+        after_reset = self.request("/api/overview")[1]
+        self.assertEqual(after_reset["by_status"],
+                         {"pending": 3, "approved": 1, "rejected": 1})
+        self.assertEqual([item["id"] for item in after_reset["attention"]], ["REL-1044"])
+
+    def test_overview_does_not_change_revisions_or_audit_history(self):
+        before = self.request("/api/releases")[1]["releases"]
+        self.request("/api/overview")
+        self.request("/api/overview")
+        after = self.request("/api/releases")[1]["releases"]
+        self.assertEqual(after, before)
+        self.assertEqual(self.request("/api/releases/REL-1042/audit")[1]["events"], [])
+```
+
+4. web/index.html — immediately after the `id="notice"` div at original line 55, before the `id="empty-selection"` div, insert:
+```html
+        <section class="overview" aria-labelledby="overview-heading">
+          <div class="overview-heading">
+            <div>
+              <span class="eyebrow">RELEASE PORTFOLIO</span>
+              <h2 id="overview-heading">At a glance</h2>
+            </div>
+            <span class="subtle">Current saved records</span>
+          </div>
+          <div id="overview-stats" class="overview-stats" aria-live="polite">
+            <p class="empty">Loading portfolio overview…</p>
+          </div>
+          <div class="overview-detail">
+            <p><strong>Environments:</strong> <span id="overview-environments">—</span></p>
+            <div>
+              <strong>Pending checks needing review</strong>
+              <ul id="overview-attention" class="overview-attention">
+                <li>Loading attention list…</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+```
+
+5A. web/app.js — immediately before `async function load()` at original line 221, insert both functions; leave one blank line before `async function load()`:
+```javascript
+function renderOverview(overview) {
+  const stats = [
+    ["Total", overview.total],
+    ["Awaiting review", overview.by_status.pending],
+    ["Approved", overview.by_status.approved],
+    ["Rejected", overview.by_status.rejected],
+  ];
+  $("overview-stats").replaceChildren();
+  for (const [label, count] of stats) {
+    const card = element("div", "overview-stat");
+    card.append(element("strong", "", String(count)), element("span", "", label));
+    $("overview-stats").append(card);
+  }
+  $("overview-environments").textContent =
+    Object.entries(overview.by_environment)
+      .map(([name, count]) => `${name} ${count}`)
+      .join(" · ") || "No releases";
+  $("overview-attention").replaceChildren();
+  for (const release of overview.attention) {
+    const item = element("li");
+    item.append(
+      element("strong", "", `${release.id} · ${release.service}`),
+      element(
+        "span", "",
+        `${release.environment} · ${release.risk} risk · ${release.checks_needing_review.join(", ")}`,
+      ),
+    );
+    $("overview-attention").append(item);
+  }
+  if (!overview.attention.length)
+    $("overview-attention").append(
+      element("li", "empty", "No pending checks need review."),
+    );
+}
+
+async function loadOverview() {
+  try {
+    const overview = await api("/api/overview");
+    if (!overview.ok) throw new Error("Could not load portfolio overview.");
+    renderOverview(overview.data);
+  } catch (error) {
+    $("overview-stats").replaceChildren(
+      element("p", "empty", "Portfolio overview unavailable."),
+    );
+    $("overview-environments").textContent = "—";
+    $("overview-attention").replaceChildren();
+    notice(error.message, true);
+  }
+}
+```
+
+5B. web/app.js — at original line 231, replace the single line `if (!state.snapshot) return;` with:
+```javascript
+  if (!state.snapshot) {
+    await loadOverview();
+    return;
+  }
+```
+
+5C. web/app.js — immediately after `renderAudit(audit.data.events);` at original line 236, insert:
+```javascript
+  await loadOverview();
+```
+
+6A. web/styles.css — after the `.main` rule closes at original line 244, before `.breadcrumb` at line 245, insert these styles:
+```css
+.overview {
+  padding: 20px 22px;
+  margin-bottom: 27px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.overview-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.overview-heading h2 {
+  margin-top: 4px;
+  font-size: 18px;
+}
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+.overview-stat {
+  padding: 10px 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+.overview-stat strong {
+  font-size: 21px;
+  line-height: 1.2;
+}
+.overview-stat span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.overview-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 14px;
+  font-size: 11px;
+}
+.overview-detail p {
+  margin: 0;
+}
+.overview-attention {
+  padding-left: 16px;
+  margin: 5px 0 0;
+}
+.overview-attention li strong,
+.overview-attention li span {
+  display: block;
+}
+.overview-attention li span {
+  color: var(--muted);
+}
+```
+
+6B. web/styles.css — inside `@media (max-width: 700px)`, after the `.main` rule closes at original line 806 and before `.review-column` at line 807, insert:
+```css
+  .overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .overview-detail {
+    flex-direction: column;
+    gap: 8px;
+  }
+```
+
+After these edits, run the tests and browser checks in flow.txt. The expected API result is 5 total; 3 pending, 1 approved, 1 rejected; 3 Production, 2 Staging; REL-1044 in the pending-attention list. The prepared implementation has 21 passing Python tests. The review write path is outside this change.
